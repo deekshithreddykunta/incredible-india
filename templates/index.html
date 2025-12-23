@@ -6574,6 +6574,8 @@ function openAttractionFromFilter(stateName, attractionId) {
 }
 // 1. Target your specific image upload input
 // ========== REAL ATTRACTION UPLOAD - NO DEMO DATA ==========
+// ========== CLEAN "NOT FOUND" - NO DEMO CARDS ==========
+// ========== ULTRA-SIMPLE NOT FOUND ==========
 document.addEventListener('DOMContentLoaded', function() {
     const uploadInput = document.getElementById('image-upload');
     const uploadLabel = document.querySelector('.upload-label');
@@ -6583,39 +6585,28 @@ document.addEventListener('DOMContentLoaded', function() {
             const file = e.target.files[0];
             if (!file) return;
             
-            uploadLabel.innerHTML = '🔍 Finding attraction...';
+            uploadLabel.innerHTML = '🔍 Searching...';
+            uploadInput.value = '';
             
-            // 1. TRY REAL MATCH FROM destinationsData
             const realMatch = findRealAttraction(file.name);
             if (realMatch) {
                 setTimeout(() => {
-                    openAttractionModal(realMatch);  // YOUR EXISTING FUNCTION
+                    openAttractionModal(realMatch);
                     uploadLabel.innerHTML = `✅ ${realMatch.title}`;
                 }, 400);
                 return;
             }
             
-            // 2. SHOW UPLOADED IMAGE IN YOUR MODAL (NO FAKE DATA)
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                // USE YOUR EXISTING MODAL - JUST CHANGE IMAGE
-                document.getElementById('modal-image').src = event.target.result;
-                document.getElementById('modal-title').textContent = file.name;
-                document.getElementById('modal-desc').textContent = 'Beautiful location! Try exact filename like "tirupati.jpg"';
-                
-                // Clear meta fields safely
-                const bestTimeEl = document.getElementById('modal-besttime');
-                const locationEl = document.getElementById('modal-location');
-                if (bestTimeEl) bestTimeEl.textContent = 'N/A';
-                if (locationEl) locationEl.textContent = 'User Upload';
-                
-                document.getElementById('attraction-modal-backdrop').classList.add('open');
-                uploadLabel.innerHTML = '❓ No match - try exact name';
-            };
-            reader.readAsDataURL(file);
+            // JUST SIMPLE POPUP
+            setTimeout(() => {
+                alert('❌ Attraction Not Found');
+                uploadLabel.innerHTML = '📸 Upload again';
+            }, 500);
         });
     }
 });
+
+
 // ========== PERFECT MATCHING - YOUR REAL ATTRACTIONS ==========
 // ========== BULLETPROOF MATCHING - ZERO WRONG DETECTIONS ==========
 function findRealAttraction(filename) {
