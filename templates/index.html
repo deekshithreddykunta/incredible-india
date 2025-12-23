@@ -1803,7 +1803,7 @@ stroke-width="1.8" stroke-opacity="50" fill="#fff0e1" stroke="#000000" id="Karna
         id: "haryana",
         name: "Haryana",
         image: "https://ik.imagekit.io/yeqo44rng/Brahma-Sarovar-Kurukshetra-Sourabh-Patiyal-Designs-Shutterstock.webp",
-        description: "Historic plains around Delhi and Kurukshetra.",
+        description: "Historic plains around Kurukshetra.",
         attractions: [
           {
             id: "kurukshetra",
@@ -1872,7 +1872,7 @@ stroke-width="1.8" stroke-opacity="50" fill="#fff0e1" stroke="#000000" id="Karna
     },
     {
       id: "pinjore-museums",
-      title: "Haryana State Museum, Pinjore",
+      title: "pinjore-museums, Pinjore",
       image: "https://ik.imagekit.io/yeqo44rng/pinjore%20mesum.jpg",
       description: "Museum showcasing tribal art, archaeology and cultural heritage.",
       bestTime: "October - March",
@@ -6293,28 +6293,41 @@ function openAttractionFromFilter(attractionId) {
   openAttractionModal(foundAttraction);
 }
 function openAttractionByName(name) {
-  const q = String(name || '').trim().toLowerCase();
-  if (!q) return false;
-
-  let match = null;
-
-  Object.values(destinationsData).forEach(dest => {
-    if (!dest || !dest.attractions || match) return;
-
-    Object.values(dest.attractions).forEach(at => {
-      if (!at || !at.title || match) return;
-      const t = at.title.toLowerCase();
-      if (t === q || t.includes(q)) {
-        match = at;
-      }
-    });
-  });
-
-  if (match) {
-    openAttractionModal(match);
-    return true;
-  }
-  return false;
+    const q = String(name).trim().toLowerCase();
+    if (!q || q.length < 3) return false;
+    
+    let bestMatch = null;
+    let bestScore = 0;
+    
+    // STRICT ATTRACTION MATCHING
+    for (let stateKey in destinationsData) {
+        const dest = destinationsData[stateKey];
+        if (!dest || !dest.attractions) continue;
+        
+        for (let attrId in dest.attractions) {
+            const at = dest.attractions[attrId];
+            if (!at || !at.title) continue;
+            
+            const t = at.title.toLowerCase();
+            let score = 0;
+            
+            // EXACT TITLE (100)
+            if (t === q) return openAttractionModal(at);
+            if (t.includes(q)) score += 80;
+            if (q.includes(t.split(' ')[0])) score += 60;
+            
+            if (score > bestScore && score >= 60) {
+                bestScore = score;
+                bestMatch = at;
+            }
+        }
+    }
+    
+    if (bestMatch) {
+        openAttractionModal(bestMatch);
+        return true;
+    }
+    return false;
 }
 
 
@@ -6438,26 +6451,47 @@ function initMapClicks() {
   });
 }
 
+// ========== PRECISE SEARCH - NO FALSE MATCHES ==========
 function handleSearch() {
-  const box = document.getElementById('home-search-input');
-  if (!box) return;
-
-  const query = box.value.trim().toLowerCase();
-  if (!query) return;
-
-  // First: try top-attraction by name
-  if (openAttractionByName(query)) return;
-
-  // Otherwise your original state search
-  const matches = destinationsData.filter(dest =>
-    dest.name.toLowerCase().includes(query) ||
-    (dest.description && dest.description.toLowerCase().includes(query))
-  );
-
-  currentSearchTerm = query;
-  currentDestinations = matches;
-  navigateTo('destinations');
-  renderDestinations(matches);
+    const box = document.getElementById('home-search-input');
+    if (!box) return;
+    
+    const query = box.value.trim().toLowerCase();
+    if (!query || query.length < 2) return;
+    
+    // 🔥 1. EXACT ATTRACTION MATCH FIRST
+    if (openAttractionByName(query)) return;
+    
+    // 🔥 2. EXACT STATE NAME MATCH ONLY (100% match or startsWith)
+    let matches = [];
+    for (let stateKey in destinationsData) {
+        const dest = destinationsData[stateKey];
+        if (!dest?.name) continue;
+        
+        const nameLower = dest.name.toLowerCase();
+        
+        // ✅ PERFECT MATCHES ONLY
+        if (nameLower === query || 
+            nameLower.startsWith(query) || 
+            query.startsWith(nameLower.split(' ')[0])) {
+            matches.push(dest);
+        }
+    }
+    
+    // 🔥 3. NO DESCRIPTION MATCHING = NO FALSE POSITIVES
+    // Haryana description "Delhi" WON'T match anymore!
+    
+    currentSearchTerm = query;
+    currentDestinations = matches;
+    
+    if (matches.length === 0) {
+        alert(`❌ No destinations found for "${query}"`);
+        return;
+    }
+    
+    navigateTo('destinations');
+    renderDestinations(matches);
+    box.value = '';
 }
 
 
